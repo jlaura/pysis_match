@@ -154,6 +154,7 @@ def open_clean_image(fname):
     npimage = npimage.astype('uint8')
     #print "Opened and stretched image:"+fname
 
+    '''
     gt = image.GetGeoTransform()
     cols = image.RasterXSize
     rows = image.RasterYSize
@@ -167,8 +168,7 @@ def open_clean_image(fname):
     tgt_srs = src_srs.CloneGeogCS()
     geo_ext=reproject_coords(ext,src_srs,tgt_srs)
     print geo_ext
-    exit()
-
+    '''
     return(npimage)
 
 
@@ -206,6 +206,7 @@ def find_features(files, feat):
         return(kp, des, files)
 
 
+@profile
 def find_matches(keypoints, descriptors, files):
     """
     Find matches between images.
@@ -251,9 +252,8 @@ def find_matches(keypoints, descriptors, files):
             keypoints[i[0]] = kps1
             descriptors[i[0]] = dsc1
 
-        image2 = open_clean_image(i[1])
-
         if i[1] not in keypoints.keys():
+            image2 = open_clean_image(i[1])
             kps2, dsc2, image2 = find_features(image2,'orb')
             keypoints[i[1]] = kps2
             descriptors[i[1]] = dsc2
@@ -272,7 +272,6 @@ def find_matches(keypoints, descriptors, files):
         matches[match_key] = matched
 
     return matches, keypoints, descriptors
-
 
 
 def main(args):
