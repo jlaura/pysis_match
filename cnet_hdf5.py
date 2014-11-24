@@ -12,7 +12,7 @@ import pandas as pd
 class Image(tb.IsDescription):
     """
     Base class for Image tables in the new scheme.
-    
+
     Each Instrument will add additional columns to this table.
     """
     Samples = tb.IntCol()
@@ -102,7 +102,7 @@ class Image(tb.IsDescription):
     Naif_Keywords_Body_Frame_Code = tb.IntCol()
     Polygon_Footprint = tb.StringCol(256)
 
-    
+
 """
     MissionPhaseName = tb.StringCol()
     DetectorTemperature = tb.FloatCol()
@@ -111,13 +111,13 @@ class Image(tb.IsDescription):
     OpticsTemperature = tb.FloatCol()
     AttitudeQuality = tb.StringCol()
 """
-    
-    
+
+
 
 
 
 class ControlPoint(tb.IsDescription):
-    pointid = tb.StringCol(64)  #Why string?  #Int or float?  In the latter case, 
+    pointid = tb.StringCol(64)  #Why string?  #Int or float?  In the latter case,
 
     pointtype = tb.StringCol(12)
     choosername = tb.StringCol(36)
@@ -127,18 +127,18 @@ class ControlPoint(tb.IsDescription):
     apriorisurface_pointfile = tb.StringCol(128)
     aprioriradius_pointsource = tb.StringCol(32)
     aprioriradius_pointfile = tb.StringCol(128)
-    
+
     latitudeconstrained = tb.BoolCol()
     longitudeconstrained = tb.BoolCol()
     radiusconstrained = tb.BoolCol()
-    
+
     #apriorilatitude = tb.FloatCol()
     apriorix = tb.FloatCol()
     #apriorilongitude = tb.FloatCol()
     aprioriy = tb.FloatCol()
     #aprioriradius = tb.FloatCol()
     aprioriz = tb.FloatCol()
-    
+
     #adjustedlatitude = tb.FloatCol()
     adjustedx = tb.FloatCol()
     #adjustedlongitude = tb.FloatCol()
@@ -160,10 +160,10 @@ class ControlPoint(tb.IsDescription):
     diameter = tb.FloatCol()
     sample = tb.FloatCol()
     line = tb.FloatCol()
-    
+
     samplesigma = tb.FloatCol()
     linesigma = tb.FloatCol()
-    
+
     apriorisample = tb.FloatCol()
     aprioriline = tb.FloatCol()
     sampleresidual = tb.FloatCol()
@@ -174,7 +174,7 @@ class ControlPoint(tb.IsDescription):
 def image_table(outfile, imfile):
     """
     Add the image metadata to an HDF5 table.
- 
+
     I should be creating a relatively small table and attaching
     subgroups and attributes to it, but I'm still learning hdf5... :/
     """
@@ -182,9 +182,9 @@ def image_table(outfile, imfile):
     img = h5file.create_group('/', 'Images', 'Image List')
     imgtable = h5file.create_table(img, 'images', Image, 'Lookup table of images')
     imgrow = imgtable.row
-    
-    
-        
+
+
+
 
 def control_network_hdf5(outfile, infiles, matches, kps):
     """
@@ -206,22 +206,22 @@ def control_network_hdf5(outfile, infiles, matches, kps):
             Point pt // Coordinates of the keypoint.
             float response // The response, by which the strongest keypoints have been selected.
             float size // Diameter of the useful keypoint adjacent area.
-    """   
+    """
 
 
     h5file = tb.open_file(outfile, mode='w', title='cnet')
     free_group = h5file.create_group('/', 'Free', 'Points of type free')
     freetable = h5file.create_table(free_group, 'controlmeasure', ControlPoint  , 'Free Control Points')
     freerow = freetable.row
-    
-    
+
+
 
     """
     The description of the incoming parameters to this function
     """
-    
+
     """
-    Build the hdf5 match point table now. 
+    Build the hdf5 match point table now.
 
     Use the keypoint.class_id to as the pointid.
     """
@@ -268,10 +268,9 @@ def control_network_hdf5(outfile, infiles, matches, kps):
 #    def gather_image_metadata(fname):
         """
         Gather metadata from the image. Add it to the image_group of the control network.
-   
+
         The image could have metadata at the footer of the image as well as at the header.
         The header contains a StartByte that tells when the image data start.
         """
 
 #        with open('fname', 'r') as f:
-                    

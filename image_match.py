@@ -9,51 +9,34 @@
 
 """
 
+from itertools import combinations
+import json
+
 # This is the Astrogeology Science Center, math is
 # a given.
 from math import *
 
 import time
 
-import cubehelix_array as ch
 # Need to be able to pass arguments to this code.
-import sys
-import glob
 import os
 import argparse
+
 
 # May be fiddling with OpenCV in this code, but probably not.
 import cv2 as cv
 
-#Obviously need HDF5 for HDF5 reading/writing/constructing.
-import h5py as h5
-
-# regular expressions
-import re
-
-# Numpy and Tables are awesome.
-import tables as tb
 import numpy as np
-from PIL import Image
 
-# May be displaying images.
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-
-# Need Pandas' fast array abilities.
-import pandas as pd
-
-# Need GDAL to open ISIS3 cubes.
 from osgeo import gdal
-from gdalconst import *
+import osr
 
 import cnet_hdf5 as cnet
 
 
-
 """
     Iterate through the list of images:
-    Detect a set of features (keypoints) on each image, 
+    Detect a set of features (keypoints) on each image,
     Then iterate through each image and match to the other
     images in the list. Pop that image off of the list and
     make the next image our match template. Continue through
@@ -87,9 +70,9 @@ def read_list(flist):
     is_csv = ',' in read_data
     if is_csv:
        file_list = read_data.split(",")
-    else: 
+    else:
        file_list = read_data.split("\n")
-    
+
     # Check to see if the files exist on disk. Probably too expensive for
     # large lists.
     for fi in file_list:
@@ -97,20 +80,71 @@ def read_list(flist):
         if (exists == False):
             print "File "+fi+" does not appear to exist. Exiting."
             exit()
-           
+
     return(file_list)
+
+
+def getextent(gt,cols,rows):
+    ''' Return list of corner coordinates from a geotransform
+
+        @type gt:   C{tuple/list}
+        @param gt: geotransform
+        @type cols:   C{int}
+        @param cols: number of columns in the dataset
+        @type rows:   C{int}
+        @param rows: number of rows in the dataset
+        @rtype:    C{[float,...,float]}
+        @return:   coordinates of each corner
+    '''
+    ext=[]
+    xarr=[0,cols]
+    yarr=[0,rows]
+
+    for px in xarr:
+        for py in yarr:
+            x=gt[0]+(px*gt[1])+(py*gt[2])
+            y=gt[3]+(px*gt[4])+(py*gt[5])
+            ext.append([x,y])
+            print x,y
+        yarr.reverse()
+    return ext
+
+def reproject_coords(coords,src_srs,tgt_srs):
+    ''' Reproject a list of x,y coordinates.
+
+        @type geom:     C{tuple/list}
+        @param geom:    List of [[x,y],...[x,y]] coordinates
+        @type src_srs:  C{osr.SpatialReference}
+        @param src_srs: OSR SpatialReference object
+        @type tgt_srs:  C{osr.SpatialReference}
+        @param tgt_srs: OSR SpatialReference object
+        @rtype:         C{tuple/list}
+        @return:        List of transformed [[x,y],...[x,y]] coordinates
+    '''
+    trans_coords=[]
+    transform = osr.CoordinateTransformation( src_srs, tgt_srs)
+    for x,y in coords:
+        x,y,z = transform.TransformPoint(x,y)
+        trans_coords.append([x,y])
+    return trans_coords
 
 def open_clean_image(fname):
     """
     Open and clean, normalize image
+
+    Parameters
+    -----------
+    fname       str PATH to the input image
     """
-    #print "Opening and cleaning the image: "+fname 
-    image = gdal.Open(fname)
-    if image is None:
+    #print "Opening and cleaning the image: "+fname
+    try:
+        image = gdal.Open(fname)
+    except:
         print "Image, "+fname+" could not be opened. Moving on to next image."
         return None
-    npimage = np.array(image.ReadAsArray())
+    npimage = image.ReadAsArray()
     imshape = npimage.shape
+
     if len(imshape) != 2:
         print "Image "+fname+" has more than one band. Moving on to next image."
         return None
@@ -119,18 +153,34 @@ def open_clean_image(fname):
     npimage, cdf = histeq(npimage)
     npimage = npimage.astype('uint8')
     #print "Opened and stretched image:"+fname
+
+    gt = image.GetGeoTransform()
+    cols = image.RasterXSize
+    rows = image.RasterYSize
+    ext = getextent(gt, cols, rows)
+
+    src_srs=osr.SpatialReference()
+    src_srs.ImportFromWkt(image.GetProjection())
+    print image.GetProjection()
+    #tgt_srs=osr.SpatialReference()
+    #tgt_srs.ImportFromEPSG(4326)
+    tgt_srs = src_srs.CloneGeogCS()
+    geo_ext=reproject_coords(ext,src_srs,tgt_srs)
+    print geo_ext
+    exit()
+
     return(npimage)
-   
+
 
 def find_features(files, feat):
     """
-    Iterate through the images and find keypoints. 
+    Iterate through the images and find keypoints.
     We're using ORB for now because it's a replacement for SIFT and SURF and seems to work well.
- 
+
     The feature extraction algorithms are all described here:
     http://docs.opencv.org/trunk/modules/features2d/doc/feature_detection_and_description.html#fast"
 
-    If files is a file handler, then we've already opened the image, so 
+    If files is a file handler, then we've already opened the image, so
     skip the open part and move on to the finding keypoints.
     """
     my_key_points = {}
@@ -154,14 +204,14 @@ def find_features(files, feat):
         fname = str(npimage)
         kp, des = orb.detectAndCompute(npimage,None)
         return(kp, des, files)
-            
+
 
 def find_matches(keypoints, descriptors, files):
     """
     Find matches between images.
 
     Iterate through all images, finding matches between the pairs of
-    images. Example: Assume five images in the list. First, use 
+    images. Example: Assume five images in the list. First, use
     find_features on each image. Then match:
     image 1 -> image 2
     image 1 -> image 3
@@ -175,78 +225,73 @@ def find_matches(keypoints, descriptors, files):
     image 4 -> image 5
     This gives the full set of matches. Accomplish this by removing image 1 from the list
     after the first iteration, then image 2, and so on.
+
+    Parameters
+    -----------
+    keypoints       dict    Desc....
+    descriptors     dict
+    files           list
+
+    Returns
+    --------
+    matches
+    keypoints
+    descriptors
+    files
     """
-    
-    temp_files = list(files)
-    files2 = list(files)
+
     matches = {}
-    for i in files:
-        image1 = open_clean_image(i)
-        if image1 is None:
-            temp_files.remove(i)
-            continue
-        kps1, dsc1, image1 = find_features(image1,'orb')
-        keypoints[i] = kps1
-        descriptors[i] = dsc1
-        files2.remove(i)
-        for j in files2:
-            image2 = open_clean_image(j)
-            if image2 is None:
-                files2.remove(j)
-                continue
+    cachedimage = None
+    for i in combinations(files, 2):
+        print i[0], i[1]
+        if cachedimage == None or cachedimage != i[0]:
+            cachedimage = i[0]
+            image1 = open_clean_image(i[0])
+            kps1, dsc1, image1 = find_features(image1,'orb')
+            keypoints[i[0]] = kps1
+            descriptors[i[0]] = dsc1
+
+        image2 = open_clean_image(i[1])
+
+        if i[1] not in keypoints.keys():
             kps2, dsc2, image2 = find_features(image2,'orb')
-            keypoints[j] = kps2
-            descriptors[j] = dsc2
-            match_key=i +"___"+ j
-            bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
-            matched = bf.match(dsc1,dsc2)
-            #matched = [m for m in matched if m.distance < 30]
-            matched = sorted(matched, key = lambda x:x.distance)
-            #matches[match_key] = matched[:20]
-            matches[match_key] = matched
+            keypoints[i[1]] = kps2
+            descriptors[i[1]] = dsc2
 
-    files = temp_files
-    return matches, keypoints, descriptors, files
- 
+        #This could be a hash as well
+        #b1 = os.path.basename(i[0].split('.')[0])
+        #b2 = os.path.basename(i[1].split('.')[0])
+        match_key = i[0] +"___"+ i[1]
+
+        bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+        matched = bf.match(descriptors[i[0]], descriptors[i[1]])
+
+        #matched = [m for m in matched if m.distance < 30]
+        matched = sorted(matched, key = lambda x:x.distance)
+        #matches[match_key] = matched[:20]
+        matches[match_key] = matched
+
+    return matches, keypoints, descriptors
 
 
-if __name__ == "__main__":
 
-
-    """
-    Parse the arguments.
-    """
-    t1 = time.time()
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-l", "--flist", dest='flist', required=True, type=str,
-        help="Image list either in one-per-line or csv format.")
-    ap.add_argument("-f", "--feature_method", dest='feat', required=False, type=str,
-        help="Feature Detection Method.")
-    ap.add_argument("-m", "--match_method", dest='match', required=False, type=str,
-        help="Image Matching Method.")
-    ap.add_argument("-o", "--output", required=False, dest='outnet', type=str,
-        help="Output Control Network file (hdf5 format).")
-
-    ap.set_defaults(feat="ORB", match="HAM")
-    args = vars(ap.parse_args())
-
+def main(args):
     feat = args['feat'].upper()
     #feat = feat.upper()
     flist = args['flist']
 
     files = read_list(flist)
-    
     # Feature Detectors allowed
     #allowed_feature_detectors = ["MSER", "ORB", "STAR", "FAST", "HARRIS", "Dense", "SimpleBlob", "GFTT"]
-    allowed_feature_detectors = ["ORB"] 
+    allowed_feature_detectors = ["ORB"]
     # Verify that the feature detection method is one that we allow.
     if (feat in allowed_feature_detectors):
-        # Call the keypoint detection function, which uses the 
+        # Call the keypoint detection function, which uses the
         # correct feature detection algorithm.
         #kps, desc,files = find_features(files, feat)
         kps = {}
         desc = {}
-        matches,kps,desc,files = find_matches(kps, desc, files)
+        matches, kps, desc = find_matches(kps, desc, files)
         outfile = "test_network.h5"
         cnet.control_network_hdf5(outfile, files, matches, kps)
         """
@@ -265,7 +310,7 @@ if __name__ == "__main__":
                 for m in matchvals:
                     cdist = int(255*(m.distance/30))
                     color = ch.cubehelix(cdist)
-                    cv.line(im4, (int(kps[im1str][m.queryIdx].pt[0]), int(kps[im1str][m.queryIdx].pt[1])), 
+                    cv.line(im4, (int(kps[im1str][m.queryIdx].pt[0]), int(kps[im1str][m.queryIdx].pt[1])),
                                  (int(kps[im2str][m.trainIdx].pt[0]+w1), int(kps[im2str][m.trainIdx].pt[1])),                              color)
                 cv.imshow("Result", im4)
                 cv.waitKey()
@@ -277,3 +322,25 @@ if __name__ == "__main__":
     t2 = time.time()
     tottime = t2-t1
     print "This entire program took: ",tottime," to complete."
+
+    return
+
+if __name__ == "__main__":
+
+
+    #Parse the arguments.
+    t1 = time.time()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-l", "--flist", dest='flist', required=True, type=str,
+        help="Image list either in one-per-line or csv format.")
+    ap.add_argument("-f", "--feature_method", dest='feat', required=False, type=str,
+        help="Feature Detection Method.")
+    ap.add_argument("-m", "--match_method", dest='match', required=False, type=str,
+        help="Image Matching Method.")
+    ap.add_argument("-o", "--output", required=False, dest='outnet', type=str,
+        help="Output Control Network file (hdf5 format).")
+
+    ap.set_defaults(feat="ORB", match="HAM")
+    args = vars(ap.parse_args())
+
+    main(args)
