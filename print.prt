@@ -1,0 +1,144 @@
+Object = mdis2isis
+  IsisVersion       = "3.4.7.5965 stable | 2014-08-27"
+  ProgramVersion    = 2011-06-15
+  ProgramPath       = /Volumes/Work/ISIS3/isisdist/isis/bin
+  ExecutionDateTime = 2014-11-22T16:19:33
+  HostName          = Unknown
+  UserName          = moses
+  Description       = "Import MESSENGER/MIDS EDR/RDR products into ISIS cubes"
+
+  Group = UserParameters
+    FROM  = EW0217133430G.IMG
+    TO    = EW0217133430G.cub
+    UNLUT = true
+  End_Group
+
+  Group = Error
+    Program = mdis2isis
+    Class   = "I/O ERROR"
+    Code    = 4
+    Message = "Unable to open [$ISIS3DATA/base/translations/pdsImage.trn]"
+    File    = Pvl.cpp
+    Line    = 86
+  End_Group
+End_Object
+
+
+Object = mdis2isis
+  IsisVersion       = "3.4.7.5965 stable | 2014-08-27"
+  ProgramVersion    = 2011-06-15
+  ProgramPath       = /Volumes/Work/ISIS3/isisdist/isis/bin
+  ExecutionDateTime = 2014-11-22T16:19:55
+  HostName          = Unknown
+  UserName          = moses
+  Description       = "Import MESSENGER/MIDS EDR/RDR products into ISIS cubes"
+
+  Group = UserParameters
+    FROM  = EW0217133430G.IMG
+    TO    = EW0217133430G.cub
+    UNLUT = true
+  End_Group
+
+  Group = Error
+    Program = mdis2isis
+    Class   = "I/O ERROR"
+    Code    = 4
+    Message = "Unable to open
+               [/Volumes/Work/ISIS3/isisdist/data//messenger/translations/mdis-
+               Instrument.trn]"
+    File    = Pvl.cpp
+    Line    = 86
+  End_Group
+End_Object
+
+
+Object = stats
+  IsisVersion       = "3.4.7.5965 stable | 2014-08-27"
+  ProgramVersion    = 2013-11-12
+  ProgramPath       = /Volumes/Work/ISIS3/isisdist/isis/bin
+  ExecutionDateTime = 2014-11-22T16:34:17
+  HostName          = Unknown
+  UserName          = moses
+  Description       = "Generates statistics about a cube"
+
+  Group = UserParameters
+    FROM   = EW1022482170B.cub
+    FORMAT = PVL
+    APPEND = TRUE
+  End_Group
+
+  Group = Results
+    From                    = EW1022482170B.cub
+    Band                    = 1
+    Average                 = 302.64534378052
+    StandardDeviation       = 88.57935313063
+    Variance                = 7846.3018010409
+    Median                  = 266.99307240406
+    Mode                    = 249.00521858549
+    Skew                    = 1.2074689004744
+    Minimum                 = 243.0
+    Maximum                 = 2065.0
+    Sum                     = 317346644.0
+    TotalPixels             = 1048576
+    ValidPixels             = 1048576
+    OverValidMaximumPixels  = 0
+    UnderValidMinimumPixels = 0
+    NullPixels              = 0
+    LisPixels               = 0
+    LrsPixels               = 0
+    HisPixels               = 0
+    HrsPixels               = 0
+  End_Group
+
+  Group = Accounting
+    ConnectTime = 00:00:00.0
+    CpuTime     = 00:00:00.1
+  End_Group
+End_Object
+
+
+Object = stats
+  IsisVersion       = "3.4.7.5965 stable | 2014-08-27"
+  ProgramVersion    = 2013-11-12
+  ProgramPath       = /Volumes/Work/ISIS3/isisdist/isis/bin
+  ExecutionDateTime = 2014-11-22T16:35:35
+  HostName          = Unknown
+  UserName          = moses
+  Description       = "Generates statistics about a cube"
+
+  Group = UserParameters
+    FROM   = EW1022482170B.cub
+    FORMAT = PVL
+    APPEND = TRUE
+  End_Group
+
+  Group = Results
+    From                    = EW1022482170B.cub
+    Band                    = 1
+    Average                 = 302.64534378052
+    StandardDeviation       = 88.57935313063
+    Variance                = 7846.3018010409
+    Median                  = 266.99307240406
+    Mode                    = 249.00521858549
+    Skew                    = 1.2074689004744
+    Minimum                 = 243.0
+    Maximum                 = 2065.0
+    Sum                     = 317346644.0
+    TotalPixels             = 1048576
+    ValidPixels             = 1048576
+    OverValidMaximumPixels  = 0
+    UnderValidMinimumPixels = 0
+    NullPixels              = 0
+    LisPixels               = 0
+    LrsPixels               = 0
+    HisPixels               = 0
+    HrsPixels               = 0
+  End_Group
+
+  Group = Accounting
+    ConnectTime = 00:00:00.0
+    CpuTime     = 00:00:00.1
+  End_Group
+End_Object
+
+
